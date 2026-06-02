@@ -31,28 +31,40 @@ class InventoryController extends Controller
 
     public function inventory()
     {
-        $products = Product::with('category')->get();
+        // 1. Fetch products with their category
+        // 2. Efficiently calculate sum of stock_in and stock_out inside the database
+        $products = Product::with('category')
+            ->withSum(['movements as total_in' => function ($query) {
+                $query->where('type', 'stock_in');
+            }], 'quantity')
+            ->withSum(['movements as total_out' => function ($query) {
+                $query->where('type', 'stock_out');
+            }], 'quantity')
+            ->get();
 
+        // Map the data for your React frontend
         $inventory = $products->map(function ($product) {
-
-            $stock = InventoryMovement::where(
-                'product_id',
-                $product->id
-            )->sum('quantity');
+            // Treat null sums as 0
+            $totalIn = $product->total_in ?? 0;
+            $totalOut = $product->total_out ?? 0;
 
             return [
-                'id' => $product->id,
-                'sku' => $product->sku,
-                'name' => $product->name,
+                'id'       => $product->id,
+                'sku'      => $product->sku,
+                'name'     => $product->name,
                 'category' => $product->category,
-                'price' => $product->price,
-
-                'stock' => (int) $stock
+                'price'    => $product->price,
+                'stock'    => (int) ($totalIn - $totalOut) // Math remains accurate forever!
             ];
         });
 
+        return response()->json($inventory);
+    }
+
+    public function history()
+    {
         return response()->json(
-            $inventory
+            InventoryMovement::with('product')->latest()->get()
         );
     }
 }

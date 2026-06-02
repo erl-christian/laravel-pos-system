@@ -2,8 +2,6 @@ import Sidebar from "../components/Sidebar";
 import { useEffect, useState } from "react";
 import api from "../services/api.js";
 
-
-
 export default function Products() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -12,7 +10,9 @@ export default function Products() {
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [categoryId, setCategoryId] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
+    // Reusable function to quickly refresh the product data grid
     async function refreshProducts() {
         try {
             const res = await api.get("/products");
@@ -22,31 +22,32 @@ export default function Products() {
         }
     }
 
+    // COMBINED FETCH: Ensures both endpoints resolve before removing the loading spinner
     useEffect(() => {
         let isMounted = true; 
-        async function fetchProductsOnLoad() {
+        
+        async function fetchInitialData() {
             try {
-                const res = await api.get("/products");
-                if (isMounted) setProducts(res.data);
-            } catch (error) {
-                console.log(error);
-            }
-        }
-        fetchProductsOnLoad();
-        return () => { isMounted = false; };
-    }, []);
+                // Fire both API calls simultaneously for faster page load speeds
+                const [productsRes, categoriesRes] = await Promise.all([
+                    api.get("/products"),
+                    api.get("/categories")
+                ]);
 
-    useEffect(() => {
-        let isMounted = true;
-        async function fetchCategoriesOnLoad() {
-            try {
-                const res = await api.get("/categories");
-                if (isMounted) setCategories(res.data);
+                if (isMounted) {
+                    setProducts(productsRes.data);
+                    setCategories(categoriesRes.data);
+                }
             } catch (error) {
-                console.log(error);
+                console.log("Error loading initial data:", error);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false); // Fires safely exactly once!
+                }
             }
         }
-        fetchCategoriesOnLoad();
+
+        fetchInitialData();
         return () => { isMounted = false; };
     }, []);
 
@@ -121,6 +122,7 @@ export default function Products() {
                                 <span className="absolute left-3 top-2.5 text-sm text-gray-400">₱</span>
                                 <input 
                                     type="number"
+                                    step="0.01" // Allows decimal points inside form submissions
                                     placeholder="0.00" 
                                     value={price}
                                     className="w-full border border-gray-200 rounded-lg p-2.5 pl-7 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
@@ -155,44 +157,56 @@ export default function Products() {
                     </form>
                 </div>
 
-                {/* Modern Data Table Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU</th>
-                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
-                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
-                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {products.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="4" className="py-8 text-center text-sm text-gray-400">
-                                            No products found. Add a product to get started.
-                                        </td>
+                {/* Table Layout Control Section */}
+                {isLoading ? (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center py-20">
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                        <p className="text-sm text-gray-500 font-medium">Loading products list...</p>
+                    </div>
+                ) : products.length === 0 ? (
+                    /* Empty State Layout */
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 text-center py-16 text-gray-500">
+                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <p className="text-lg font-semibold text-gray-900">No products found</p>
+                        <p className="text-sm text-gray-400 mt-1">Add products to your system or refresh to update inventory lists.</p>
+                    </div>
+                ) : (
+                    /* Product Inventory Matrix Card */
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100">
+                                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU</th>
+                                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
+                                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
+                                        <th className="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                                     </tr>
-                                ) : (
-                                    products.map((product) => (
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {products.map((product) => (
                                         <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="py-4 px-6 text-sm font-mono text-gray-600 font-medium">{product.sku}</td>
                                             <td className="py-4 px-6 text-sm font-medium text-gray-900">{product.name}</td>
-                                            <td className="py-4 px-6 text-sm font-semibold text-blue-600">₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="py-4 px-6 text-sm font-semibold text-blue-600">
+                                                ₱{parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
                                             <td className="py-4 px-6 text-sm">
                                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                                     {product.category?.name || "Uncategorized"}
                                                 </span>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-
+                )}
             </div>
         </div>
     );

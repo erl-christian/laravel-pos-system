@@ -21,8 +21,8 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function inventoryMovement()
+    public function movements()
     {
-        return $this->hasMany(InventoryMovement::class);
+        return $this->hasMany(InventoryMovement::class, 'product_id');
     }
 }

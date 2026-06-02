@@ -1,7 +1,10 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
 
 export default function Sidebar() {
     const location = useLocation();
+
+    const navigate = useNavigate()
 
     const isActive = (path) => location.pathname === path;
 
@@ -12,6 +15,12 @@ export default function Sidebar() {
             : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
         }
     `;
+
+    function logout(){
+        localStorage.removeItem("token")
+
+        navigate("/")
+    }
 
     return (
         <div className="w-64 h-screen bg-slate-900 text-white p-5 flex flex-col border-r border-slate-800 sticky top-0">
@@ -48,6 +57,12 @@ export default function Sidebar() {
                     </svg>
                     Inventory
                 </Link>
+                <Link to="/inventory/history" className={linkClasses("/inventory/history")}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                    </svg>
+                    History
+                </Link>
             </nav>
 
             {/* User Profile Info Footer inside Sidebar */}
@@ -59,7 +74,17 @@ export default function Sidebar() {
                     <p className="text-sm font-medium truncate">Admin User</p>
                     <p className="text-xs text-slate-500 truncate">admin@store.com</p>
                 </div>
+                
             </div>
+            <button 
+                onClick={logout} 
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 mt-auto"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+            </button>
         </div>
     );
 }

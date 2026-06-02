@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/stock-in', [InventoryController::class, 'stockIn']);
 Route::get('/inventory', [InventoryController::class, 'inventory']);
+Route::get('/inventory/history', [InventoryController::class, 'history']);
 
 Route::post('/categories', [CategoryController::class, 'store']);
 Route::get('/categories', [CategoryController::class, 'index']);
